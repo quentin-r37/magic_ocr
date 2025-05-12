@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35728.132
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OcrApp.Server", "OcrApp\Server\OcrApp.Server.csproj", "{00AD6625-FA72-4502-AF2A-27370DE2F732}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OcrApp.Client", "OcrApp\Client\OcrApp.Client.csproj", "{30811479-59A3-4E25-A4AE-271C94E1607B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OcrApp.Shared", "OcrApp\Shared\OcrApp.Shared.csproj", "{99C21EC0-D382-4EBA-84B9-9A21D12946A3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OcrApp.Tests", "OcrApp.Tests\OcrApp.Tests.csproj", "{95BD8A1C-A975-4E93-9623-DF2BC52459DB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{00AD6625-FA72-4502-AF2A-27370DE2F732}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00AD6625-FA72-4502-AF2A-27370DE2F732}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00AD6625-FA72-4502-AF2A-27370DE2F732}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00AD6625-FA72-4502-AF2A-27370DE2F732}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30811479-59A3-4E25-A4AE-271C94E1607B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30811479-59A3-4E25-A4AE-271C94E1607B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30811479-59A3-4E25-A4AE-271C94E1607B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30811479-59A3-4E25-A4AE-271C94E1607B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99C21EC0-D382-4EBA-84B9-9A21D12946A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99C21EC0-D382-4EBA-84B9-9A21D12946A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99C21EC0-D382-4EBA-84B9-9A21D12946A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99C21EC0-D382-4EBA-84B9-9A21D12946A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95BD8A1C-A975-4E93-9623-DF2BC52459DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95BD8A1C-A975-4E93-9623-DF2BC52459DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95BD8A1C-A975-4E93-9623-DF2BC52459DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95BD8A1C-A975-4E93-9623-DF2BC52459DB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {06C16C52-3555-4808-A700-7541E170F747}
+	EndGlobalSection
+EndGlobal

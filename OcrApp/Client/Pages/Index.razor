@@ -1,0 +1,662 @@
+﻿@using Microsoft.AspNetCore.Http.Internal
+@using Microsoft.AspNetCore.Components.Forms
+@using OcrApp.Client.Services
+@using OcrApp.Shared
+@using System.Text.Json
+@using Blazored.Toast.Services
+@using Fluxor
+@using Microsoft.AspNetCore.Http
+@using OcrApp.Client.Redux.State
+@using OcrApp.Client.Redux.Actions
+@using Refit
+@inherits FluxorPage
+@inject IScanApiService ScanApiService
+@inject IToastService ToastService
+@inject IState<OcrState> OcrState
+@inject IJSRuntime JSRuntime
+
+@page "/"
+
+<PageTitle>Magic Document Scanner</PageTitle>
+
+<div class="transition-colors duration-300 py-4">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-col gap-6">
+            <!-- Header -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                <h1 class="text-xl font-semibold text-gray-700 dark:text-gray-200">📄 Magic Document Scanner</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Extract information from your documents using AI-powered OCR</p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <nav x-data="{ tab: '@(_currentTab.ToString().ToLower())' }" class="flex">
+                        <button x-on:click="tab = 'configure'"
+                                x-bind:class="tab === 'configure' ? 'border-b-2 border-gray-700 dark:border-gray-300 text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
+                                class="px-4 py-4 font-medium text-sm focus:outline-none"
+                                @onclick="() => SwitchTab(Tab.Configure)">
+                            1️⃣ Configure Sections
+                        </button>
+                        <button x-on:click="tab = 'extract'"
+                                x-bind:class="tab === 'extract' ? 'border-b-2 border-gray-700 dark:border-gray-300 text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
+                                class="px-4 py-4 font-medium text-sm focus:outline-none"
+                                @onclick="() => SwitchTab(Tab.Extract)">
+                            2️⃣ Extract Values
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="p-6">
+                    @if (_currentTab == Tab.Configure)
+                    {
+                        <!-- Configure Sections Tab -->
+                        <div class="flex flex-col gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Document Model Upload -->
+                                <div class="md:col-span-2 bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                                    <h2 class="font-medium text-gray-700 dark:text-gray-300 mb-4">Document Model (PDF or Image)</h2>
+
+                                    <InputFile OnChange="OnInputFileChange" class="hidden" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" />
+
+                                    <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center @(_isDragging ? "bg-gray-100 dark:bg-gray-800" : "")"
+                                         @ondragenter="HandleDragEnter"
+                                         @ondragleave="HandleDragLeave"
+                                    @ondragover:preventDefault
+                                         @ondrop="HandleDrop">
+
+                                        @if (OcrState.Value.IsProcessingScan)
+                                        {
+                                            <div class="flex flex-col items-center justify-center">
+                                                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-700 dark:border-gray-300"></div>
+                                                <p class="mt-4 text-gray-600 dark:text-gray-400">Processing document...</p>
+                                            </div>
+                                        }
+                                        else if (_selectedFile != null)
+                                        {
+                                            <div class="flex flex-col items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                <p class="mt-2 text-gray-600 dark:text-gray-400">@_selectedFile.Value.Name</p>
+                                                <button @onclick="ClearSelectedFile" class="mt-2 px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">
+                                                    Clear
+                                                </button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="flex flex-col items-center cursor-pointer" @onclick="BrowseFiles">
+                                                <svg class="h-12 w-12 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.478 9.011h.022c2.485 0 4.5 2.018 4.5 4.508c0 2.32-1.75 4.232-4 4.481m-.522-8.989q.021-.248.022-.5A5.505 5.505 0 0 0 12 3a5.505 5.505 0 0 0-5.48 5.032m10.958.98a5.5 5.5 0 0 1-1.235 3.005M6.52 8.032A5.006 5.006 0 0 0 2 13.018a5.01 5.01 0 0 0 4 4.91m.52-9.896q.237-.023.48-.023c1.126 0 2.165.373 3 1.002M12 13v8m0-8c-.7 0-2.008 1.994-2.5 2.5M12 13c.7 0 2.008 1.994 2.5 2.5" color="currentColor" />
+                                                </svg>
+                                                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Drag and drop or click to browse</p>
+                                                <p class="text-xs text-gray-400 dark:text-gray-500">(PDF, JPG, PNG files)</p>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    @if (_selectedFile != null && !OcrState.Value.IsProcessingScan)
+                                    {
+                                        <div class="mt-4 text-center">
+                                            <button @onclick="ScanDocument" class="inline-flex items-center px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded-md hover:bg-gray-800 dark:hover:bg-gray-700 focus:outline-none">
+                                                <svg class="me-2 h-6 w-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.5 8.187c.104-2.1.415-3.41 1.347-4.34c.93-.932 2.24-1.243 4.34-1.347M21.5 8.187c-.104-2.1-.415-3.41-1.347-4.34c-.93-.932-2.24-1.243-4.34-1.347m0 19c2.1-.104 3.41-.415 4.34-1.347c.932-.93 1.243-2.24 1.347-4.34M8.187 21.5c-2.1-.104-3.41-.415-4.34-1.347c-.932-.93-1.243-2.24-1.347-4.34M2.5 12h19M6 12a6 6 0 0 1 6-6a3 3 0 0 0 4.8 2.4A5.97 5.97 0 0 1 18 12m-.803 3A6 6 0 0 1 12 18a6 6 0 0 1-5.197-3" color="currentColor" />
+                                                </svg>
+                                                <span>
+                                                    Magic Scan
+                                                </span>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Manual Sections -->
+                                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                                    <h2 class="font-medium text-gray-700 dark:text-gray-300 mb-4">Add Manual Sections</h2>
+
+                                    <div class="flex flex-col gap-4">
+                                        <textarea @bind="_manualSections"
+                                                  placeholder="Name or Email or Address..."
+                                                  class="w-full h-32 p-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:focus:ring-gray-400">
+                                                </textarea>
+
+                                        <button @onclick="AddManualSections" class="inline-flex items-center px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded-md hover:bg-gray-800 dark:hover:bg-gray-700 focus:outline-none">
+                                            <svg class="w-6 h-6 me-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m-8-8h16" color="currentColor" />
+                                            </svg>
+
+                                            <span> Add Sections</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Detected Sections -->
+                            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="font-medium text-gray-700 dark:text-gray-300">Detected Sections</h2>
+
+                                    @if (OcrState.Value.SectionChoices.Count > 0)
+                                    {
+                                        <div class="flex items-center gap-2">
+                                            <button @onclick="SelectAllSections"
+                                                class="inline-flex items-center px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">
+                                                <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="currentColor">
+                                                        <path d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12" />
+                                                        <path d="m8 12.5l2.5 2.5L16 9" />
+                                                    </g>
+                                                </svg>
+                                                Select All
+                                            </button>
+                                            
+                                            <button @onclick="ResetSections"
+                                                class="inline-flex items-center px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">
+                                                <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.01 2v3.132a.314.314 0 0 1-.556.201A9.98 9.98 0 0 0 12 2C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10" color="currentColor" />
+                                                </svg>
+                                                Reset
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (OcrState.Value.IsProcessingScan)
+                                {
+                                    <p class="text-gray-600 dark:text-gray-400">Processing document...</p>
+                                }
+                                else if (OcrState.Value.SectionChoices.Count == 0)
+                                {
+                                    <p class="text-gray-600 dark:text-gray-400">No sections detected yet. Upload a document and click "Magic Scan".</p>
+                                }
+                                else
+                                {
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                        @foreach (var sec in OcrState.Value.SectionChoices)
+                                        {
+                                            <div class="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3">
+                                                <input type="checkbox"
+                                                       id="section-@(OcrState.Value.SectionChoices.IndexOf(sec))"
+                                                       value="@sec"
+                                                       checked="@OcrState.Value.SelectedSections.Contains(sec)"
+                                                       @onchange="e => ToggleSectionSelection(sec, (bool)e.Value)"
+                                                       class="h-4 w-4 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 rounded focus:ring-0" />
+
+                                                <label for="section-@OcrState.Value.SectionChoices.IndexOf(sec)" class="ml-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                                                    @sec
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else if (_currentTab == Tab.Extract)
+                    {
+                        <!-- Extract Values Tab -->
+                        <div class="flex flex-col gap-6">
+                            <!-- Document Upload for Extraction -->
+                            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                                <h2 class="font-medium text-gray-700 dark:text-gray-300 mb-4">Documents to Process (PDF or Images)</h2>
+
+                                <InputFile OnChange="OnExtractFilesChange" class="hidden" id="extractFilesInput" accept=".pdf,.jpg,.jpeg,.png" multiple />
+
+                                <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center @(_isDraggingExtract ? "bg-gray-100 dark:bg-gray-800" : "")"
+                                     @ondragenter="HandleDragEnterExtract"
+                                     @ondragleave="HandleDragLeaveExtract"
+                                @ondragover:preventDefault
+                                     @ondrop="HandleDropExtract">
+
+                                    @if (OcrState.Value.IsProcessingExtract)
+                                    {
+                                        <div class="flex flex-col items-center justify-center">
+                                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-700 dark:border-gray-300"></div>
+                                            <p class="mt-4 text-gray-600 dark:text-gray-400">Processing documents...</p>
+                                        </div>
+                                    }
+                                    else if (_extractFiles.Count > 0)
+                                    {
+                                        <div class="flex flex-col items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            <p class="mt-2 text-gray-600 dark:text-gray-400">@_extractFiles.Count file(s) selected</p>
+                                            <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto w-full">
+                                                @foreach (var file in _extractFiles)
+                                                {
+                                                    <div class="bg-white dark:bg-gray-800 p-2 rounded-md text-sm text-gray-600 dark:text-gray-400 flex items-center justify-between">
+                                                        <span class="truncate" style="max-width: 200px;">@file.Name</span>
+                                                        <button @onclick="() => RemoveExtractFile(file.Name)" class="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400">
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <button @onclick="ClearExtractFiles" class="mt-2 px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">
+                                                Clear All
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-col items-center cursor-pointer" @onclick="BrowseExtractFiles">
+
+                                            <svg class="h-12 w-12 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.478 9.011h.022c2.485 0 4.5 2.018 4.5 4.508c0 2.32-1.75 4.232-4 4.481m-.522-8.989q.021-.248.022-.5A5.505 5.505 0 0 0 12 3a5.505 5.505 0 0 0-5.48 5.032m10.958.98a5.5 5.5 0 0 1-1.235 3.005M6.52 8.032A5.006 5.006 0 0 0 2 13.018a5.01 5.01 0 0 0 4 4.91m.52-9.896q.237-.023.48-.023c1.126 0 2.165.373 3 1.002M12 13v8m0-8c-.7 0-2.008 1.994-2.5 2.5M12 13c.7 0 2.008 1.994 2.5 2.5" color="currentColor" />
+                                            </svg>
+                                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Drag and drop or click to browse</p>
+                                            <p class="text-xs text-gray-400 dark:text-gray-500">(PDF, JPG, PNG files)</p>
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Extraction Controls -->
+                                <div class="mt-4">
+                                    <div class="flex flex-col gap-2">
+                                        <div class="bg-white dark:bg-gray-800 p-3 rounded-md">
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Selected sections to extract:</p>
+                                            @if (OcrState.Value.SelectedSections.Count == 0)
+                                            {
+                                                <p class="text-sm text-gray-500 dark:text-gray-500">No sections selected. Go to "Configure Sections" tab to select sections.</p>
+                                            }
+                                            else
+                                            {
+                                                <div class="flex flex-wrap gap-2">
+                                                    @foreach (var section in OcrState.Value.SelectedSections)
+                                                    {
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                                                            @(section.Contains(" (Niveau:") ? section.Split(" (Niveau:")[0].Trim() : section)
+                                                        </span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <button @onclick="ExtractValues"
+                                                disabled="@(_extractFiles.Count == 0 || OcrState.Value.SelectedSections.Count == 0 || OcrState.Value.IsProcessingExtract)"
+                                                class="inline-flex items-center justify-center px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded-md hover:bg-gray-800 dark:hover:bg-gray-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+
+                                            <svg class="w-6 h-6 me-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m13.926 12.778l-2.149-2.149c-.292-.293-.439-.439-.597-.517a1.07 1.07 0 0 0-.954 0c-.158.078-.304.224-.597.517s-.439.44-.517.597c-.15.301-.15.654 0 .954c.078.158.224.305.517.598l2.149 2.148m2.148-2.149l6.445 6.446c.293.292.439.439.517.597c.15.3.15.653 0 .954c-.078.157-.224.304-.517.597s-.44.439-.597.517c-.301.15-.654.15-.954 0c-.158-.078-.305-.224-.598-.517l-6.445-6.445m2.149-2.149l-2.149 2.149M17 2l.295.797c.386 1.044.58 1.566.96 1.947c.382.381.904.575 1.948.961L21 6l-.797.295c-1.044.386-1.566.58-1.947.96c-.381.382-.575.904-.961 1.948L17 10l-.295-.797c-.386-1.044-.58-1.566-.96-1.947c-.382-.381-.904-.575-1.948-.961L13 6l.797-.295c1.044-.386 1.566-.58 1.947-.96c.381-.382.575-.904.961-1.948zM6 4l.221.597c.29.784.435 1.176.72 1.461c.286.286.678.431 1.462.72L9 7l-.597.221c-.784.29-1.176.435-1.461.72c-.286.286-.431.678-.72 1.462L6 10l-.221-.597c-.29-.784-.435-1.176-.72-1.461c-.286-.286-.678-.431-1.462-.72L3 7l.597-.221c.784-.29 1.176-.435 1.461-.72c.286-.286.431-.678.72-1.462z" color="currentColor" />
+                                            </svg>
+
+                                            <span>Extract Values</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Extraction Results -->
+                            @if (!string.IsNullOrEmpty(OcrState.Value.ExtractResultSummary))
+                            {
+                                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                                    <h2 class="font-medium text-gray-700 dark:text-gray-300 mb-4">Extraction Results</h2>
+
+                                    <div class="bg-white dark:bg-gray-800 p-4 rounded-md overflow-auto h-64">
+                                        <pre class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">@OcrState.Value.ExtractResultSummary</pre>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Results Display -->
+                            @if (OcrState.Value.ExtractionResponse is { MultiDocumentResponse: not null } && OcrState.Value.ExtractionResponse.MultiDocumentResponse.Documents.Any())
+                            {
+                                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                                     <div class="flex justify-between items-center mb-4">
+                                        <h2 class="font-medium text-gray-700 dark:text-gray-300">Structured Results</h2>
+                                        <button @onclick="ExportResultsToExcel"
+                                                disabled="@OcrState.Value.IsProcessingExtract"
+                                                class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="currentColor">
+                                                    <path d="M18.5 16c.506.491 2.5 1.8 2.5 2.5M18.5 21c.506-.491 2.5-1.8 2.5-2.5m0 0h-8M11 22h-.273c-3.26 0-4.892 0-6.024-.798a4.1 4.1 0 0 1-.855-.805C3 19.331 3 17.797 3 14.727v-2.545c0-2.963 0-4.445.469-5.628c.754-1.903 2.348-3.403 4.37-4.113C9.095 2 10.668 2 13.818 2c1.798 0 2.698 0 3.416.252c1.155.406 2.066 1.263 2.497 2.35C20 5.278 20 6.125 20 7.818V13" />
+                                                    <path d="M3 12a3.333 3.333 0 0 1 3.333-3.333c.666 0 1.451.116 2.098-.057A1.67 1.67 0 0 0 9.61 7.43c.173-.647.057-1.432.057-2.098A3.333 3.333 0 0 1 13 2" />
+                                                </g>
+                                            </svg>
+                                            Export Excel
+                                        </button>
+                                    </div>
+
+                                    @foreach (var document in OcrState.Value.ExtractionResponse.MultiDocumentResponse.Documents)
+                                    {
+                                        <div class="mb-6 bg-white dark:bg-gray-800 p-4 rounded-md">
+                                            <h3 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-2">Document: @document.Document</h3>
+
+                                            @if (document.ExtractedValues.Count == 0)
+                                            {
+                                                <p class="text-sm text-gray-500 dark:text-gray-500">No values extracted from this document.</p>
+                                            }
+                                            else
+                                            {
+                                                <div class="overflow-x-auto">
+                                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                                        <thead class="bg-gray-50 dark:bg-gray-900">
+                                                            <tr>
+                                                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Section</th>
+                                                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Value</th>
+                                                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Confidence</th>
+                                                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Page</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                                            @foreach (var value in document.ExtractedValues)
+                                                            {
+                                                                <tr>
+                                                                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">@value.Section</td>
+                                                                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                                        @if (value.Value is JsonElement { ValueKind: JsonValueKind.Array } jsonElement)
+                                                                        {
+                                                                            <ul class="list-disc pl-4">
+                                                                                @foreach (var item in jsonElement.EnumerateArray())
+                                                                                {
+                                                                                    <li>@item.ToString()</li>
+                                                                                }
+                                                                            </ul>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            @value.Value.ToString()
+                                                                        }
+                                                                    </td>
+                                                                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                                        @(value.Confidence * 100)%
+                                                                    </td>
+                                                                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">@value.Page</td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">How to use Magic Document Scanner</h2>
+
+                <div class="text-sm text-gray-600 dark:text-gray-400 space-y-4">
+                    <div>
+                        <h3 class="font-medium text-gray-700 dark:text-gray-300 mb-2">1️⃣ Configure Sections:</h3>
+                        <ul class="list-disc pl-6 space-y-1">
+                            <li>Upload a document template and click "Magic Scan" to automatically detect sections.</li>
+                            <li>Add sections manually by typing them (one per line) and clicking "Add Sections".</li>
+                            <li>Select the sections you want to extract data from.</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="font-medium text-gray-700 dark:text-gray-300 mb-2">2️⃣ Extract Values:</h3>
+                        <ul class="list-disc pl-6 space-y-1">
+                            <li>Upload one or more documents of the same type.</li>
+                            <li>Click "Extract Values" to retrieve information from the selected sections.</li>
+                            <li>View both raw extraction results and structured data in tables.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    // Tab state
+    private Tab _currentTab = Tab.Configure;
+
+    // Configure tab state
+    private (byte[]? Bytes, string Name, string ContentType)? _selectedFile;
+    private bool _isDragging = false;
+    private string _manualSections = "";
+
+    // Extract tab state
+    private List<(byte[] Bytes, string Name, string ContentType)> _extractFiles = [];
+    private bool _isDraggingExtract = false;
+
+    private void SwitchTab(Tab tab)
+    {
+        _currentTab = tab;
+    }
+
+    #region Configure Tab Methods
+
+    private void BrowseFiles()
+    {
+        // Trigger the hidden file input
+        var inputElement = "document.getElementById('fileInput').click()";
+        if (JSRuntime != null)
+        {
+            JSRuntime.InvokeVoidAsync("eval", inputElement);
+        }
+    }
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        byte[] fileBytes = await ConvertToFormFile(e.File);
+        _selectedFile = (fileBytes, e.File.Name, e.File.ContentType);
+        _isDragging = false;
+        StateHasChanged();
+    }
+
+    private void HandleDragEnter()
+    {
+        _isDragging = true;
+    }
+
+    private void HandleDragLeave()
+    {
+        _isDragging = false;
+    }
+
+    private async Task HandleDrop(DragEventArgs e)
+    {
+        _isDragging = false;
+        // The actual file handling is done by the InputFile component
+    }
+
+    private void ClearSelectedFile()
+    {
+        _selectedFile = null;
+        StateHasChanged();
+    }
+
+    private async Task ScanDocument()
+    {
+        if (_selectedFile == null)
+        {
+            ToastService.ShowError("Please select a file to scan");
+            return;
+        }
+
+        Dispatcher.Dispatch(new OcrActions.ScanDocumentAction(
+            _selectedFile.Value.Bytes,
+            _selectedFile.Value.Name,
+            _selectedFile.Value.ContentType));
+    }
+
+    private async Task AddManualSections()
+    {
+        if (string.IsNullOrWhiteSpace(_manualSections))
+        {
+            ToastService.ShowWarning("Please enter section names to add");
+            return;
+        }
+
+        var newSections = _manualSections.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+
+        foreach (var section in newSections)
+        {
+            // Dispatch AddManualSectionAction for each section
+            Dispatcher.Dispatch(new OcrActions.AddManualSectionAction(section));
+        }
+
+        ToastService.ShowSuccess($"Added {newSections.Count} manual sections");
+        _manualSections = "";
+    }
+
+    private void ToggleSectionSelection(string section, bool isSelected)
+    {
+        // Dispatch ToggleSectionSelectionAction
+        Dispatcher.Dispatch(new OcrActions.ToggleSectionSelectionAction(section, isSelected));
+    }
+
+    private void SelectAllSections()
+    {
+        foreach (var section in OcrState.Value.SectionChoices)
+        {
+            if (!OcrState.Value.SelectedSections.Contains(section))
+            {
+                Dispatcher.Dispatch(new OcrActions.ToggleSectionSelectionAction(section, true));
+            }
+        }
+        ToastService.ShowInfo("All sections have been selected");
+    }
+
+    #endregion
+
+    #region Extract Tab Methods
+
+    private void BrowseExtractFiles()
+    {
+        var inputElement = "document.getElementById('extractFilesInput').click()";
+        if (JSRuntime != null)
+        {
+            JSRuntime.InvokeVoidAsync("eval", inputElement);
+        }
+    }
+
+    private async Task OnExtractFilesChange(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            if (_extractFiles.All(f => f.Name != file.Name))
+            {
+                var fileBytes = await ConvertToFormFile(file);
+                _extractFiles.Add((fileBytes, file.Name, file.ContentType));
+            }
+        }
+        _isDraggingExtract = false;
+        StateHasChanged();
+    }
+
+    private void HandleDragEnterExtract()
+    {
+        _isDraggingExtract = true;
+    }
+
+    private void HandleDragLeaveExtract()
+    {
+        _isDraggingExtract = false;
+    }
+
+    private async Task HandleDropExtract(DragEventArgs e)
+    {
+        _isDraggingExtract = false;
+        // The actual file handling is done by the InputFile component
+    }
+
+    private void ClearExtractFiles()
+    {
+        _extractFiles.Clear();
+        StateHasChanged();
+    }
+
+    private void RemoveExtractFile(string fileName)
+    {
+        _extractFiles.RemoveAll(f => f.Name == fileName);
+        StateHasChanged();
+    }
+
+    private async Task ExtractValues()
+    {
+        if (_extractFiles.Count == 0)
+        {
+            ToastService.ShowError("Please select at least one file to extract values from");
+            return;
+        }
+
+        if (OcrState.Value.SelectedSections.Count == 0)
+        {
+            ToastService.ShowError("Please select at least one section to extract");
+            return;
+        }
+
+        var fileBytesList = _extractFiles.Select(f => f.Bytes).ToList();
+        var fileNames = _extractFiles.Select(f => f.Name).ToList();
+        var contentTypes = _extractFiles.Select(f => f.ContentType).ToList();
+
+        Dispatcher.Dispatch(new OcrActions.ExtractValuesAction(
+            fileBytesList, 
+            fileNames, 
+            contentTypes, 
+            OcrState.Value.SelectedSections));
+    }
+
+    private async Task ExportResultsToExcel()
+    {
+        if (OcrState.Value.ExtractionResponse?.MultiDocumentResponse == null || !OcrState.Value.ExtractionResponse.MultiDocumentResponse.Documents.Any())
+        {
+            ToastService.ShowWarning("No results to export.");
+            return;
+        }
+
+        try
+        {
+            // Call the server API endpoint
+            var response = await ScanApiService.ExportResults(OcrState.Value.ExtractionResponse.MultiDocumentResponse);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var fileName = response.Content.Headers?.ContentDisposition?.FileName ?? $"ExtractedData_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                
+                // Use JS interop to trigger download
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, fileBytes);
+                ToastService.ShowSuccess($"Exported results to {fileName}");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ToastService.ShowError($"Error exporting to Excel: {response.ReasonPhrase} - {errorContent}");
+            }
+        }
+        catch (ApiException apiEx)
+        {
+             ToastService.ShowError($"API Error exporting to Excel: {apiEx.Message} - {apiEx.Content}");
+             // Log the full exception if needed
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error exporting to Excel: {ex.Message}");
+            // Log the full exception if needed
+        }
+    }
+
+    private void ResetSections()
+    {
+        Dispatcher.Dispatch(new OcrActions.ResetSectionsAction());
+        ToastService.ShowInfo("Sections have been reset");
+    }
+
+    #endregion
+
+    private async Task<byte[]> ConvertToFormFile(IBrowserFile browserFile)
+    {
+        using var memoryStream = new MemoryStream();
+        // Increased max size for potentially larger files during extraction
+        await browserFile.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024).CopyToAsync(memoryStream); 
+        return memoryStream.ToArray();
+    }
+
+}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OcrApp</title>
+    <base href="/" />
+    <link href="css/app.min.css?v=20250403" rel="stylesheet" />
+    <link href="OcrApp.Client.styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui" class="fixed inset-x-0 bottom-0 bg-red-600 text-white p-4 items-center justify-between shadow-lg z-50 hidden">
+        <div class="inline-flex items-center justify-between w-full">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>An unhandled error has occurred.</span>
+            </div>
+            <div class="flex items-center">
+                <a href="" class="reload bg-white text-red-600 px-3 py-1 rounded mr-3 hover:bg-red-100 transition-colors duration-200">Reload</a>
+                <a class="dismiss text-white hover:text-red-200 cursor-pointer">🗙</a>
+            </div>
+        </div>
+    </div>
+    <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="https://unpkg.com/alpinejs"></script>
+
+    <script>
+
+        window.getBrowserLanguage = function () {
+            return navigator.language || "fr-FR";
+        };
+
+        // Function to trigger file download from byte array
+        window.downloadFileFromStream = async (fileName, contentBytes) => {
+            const blob = new Blob([new Uint8Array(contentBytes)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const anchorElement = document.createElement('a');
+            anchorElement.href = url;
+            anchorElement.download = fileName ?? '';
+            anchorElement.click();
+            anchorElement.remove();
+            URL.revokeObjectURL(url);
+        }
+       
+    </script>
+</body>
+
+</html>

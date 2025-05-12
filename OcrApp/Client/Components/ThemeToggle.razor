@@ -1,0 +1,49 @@
+﻿@using Fluxor
+@using OcrApp.Client.Redux.Actions
+@using OcrApp.Client.Redux.State
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IDispatcher Dispatcher
+@inject IState<UserState> UserState
+
+@{
+    var isDarkMode = UserState.Value.IsDarkMode;
+    var toggleTranslateClass = isDarkMode ? "translate-x-full" : "translate-x-0";
+}
+
+<div class="inline-flex rounded-full bg-gray-100 dark:bg-gray-900 p-0 relative w-full">
+    <div class="absolute inset-0.5 bg-white dark:bg-gray-800 rounded-full transform transition-transform duration-300 shadow-sm"
+         style="width: calc(50% - 2px); transform: translateX(@(isDarkMode ? "100%" : "0%"));">
+    </div>
+    <button type="button"
+            @onclick="() => ToggleTheme(false)"
+            class="relative flex-1 flex items-center justify-center px-0 py-2 text-sm font-medium rounded-full dark:text-gray-300 text-gray-600 z-10"
+            aria-pressed="@(!isDarkMode).ToString().ToLower()">
+        <svg class="h-4 w-4 mr-2 @(isDarkMode ? "text-gray-400" : "text-gray-500")" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </g>
+        </svg>
+        Light
+    </button>
+    <button type="button"
+            @onclick="() => ToggleTheme(true)"
+            class="relative flex-1 flex items-center justify-center px-0 py-2 text-sm font-medium rounded-full dark:text-gray-300 text-gray-600 z-10"
+            aria-pressed="@isDarkMode.ToString().ToLower()">
+        <svg class="h-4 w-4 mr-2 @(isDarkMode ? "text-gray-600" : "text-gray-400")" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a6 6 0 0 0 9 9a9 9 0 1 1-9-9" />
+        </svg>
+        Dark
+    </button>
+</div>
+
+@code {
+    public Task ToggleTheme(bool darkMode = true)
+    {
+        if (darkMode != UserState.Value.IsDarkMode)
+        {
+            Dispatcher.Dispatch(new UserActions.ToggleDarkModeAction());
+        }
+        return Task.CompletedTask;
+    }
+}

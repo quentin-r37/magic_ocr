@@ -1,0 +1,36 @@
+﻿@using Blazored.Toast.Configuration
+@using Fluxor
+@using OcrApp.Client.Redux.State
+@inherits Fluxor.Blazor.Web.Components.FluxorLayout
+
+@code {
+    private void Callback()
+    {
+        throw new NotImplementedException();
+    }
+}
+@inject IState<UserState> UserState
+
+<div class="flex h-screen overflow-hidden bg-white dark:bg-gray-900 @(UserState.Value.IsDarkMode ? "dark" : "")">
+    <BlazoredToasts Position="ToastPosition.TopRight"
+                    Timeout="8"
+                    ErrorIcon="fa fa-bug"
+                    InfoIcon="fa fa-info-circle"
+                    SuccessIcon="fa fa-thumbs-up"
+                    WarningIcon="fa fa-exclamation-triangle"
+                    ShowProgressBar="true" />
+
+    <div class="flex flex-col flex-1 w-0 overflow-hidden ">
+        <NavBar></NavBar>
+        <main class="transition-colors duration-300 flex-1 overflow-auto pt-16 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent scrollbar-thumb-rounded-[40px]">
+            <div class="max-w-screen-2xl mx-auto">
+                <div>
+                    <div class="px-2 mx-auto max-w-7xl sm:px-6 md:px-8">
+                        @Body
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+</div>

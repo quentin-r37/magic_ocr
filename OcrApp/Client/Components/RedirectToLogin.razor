@@ -1,0 +1,15 @@
+﻿@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject NavigationManager Navigation
+
+@code {
+    [CascadingParameter]
+    Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var context = await AuthenticationStateTask;
+        Navigation.NavigateTo(context.User.Identity?.IsAuthenticated != true
+            ? "authentication/login"
+            : "/forbidden");
+    }
+}

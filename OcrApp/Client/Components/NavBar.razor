@@ -1,0 +1,119 @@
+﻿@using Fluxor
+@using OcrApp.Client.Redux.State
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<UserState> UserState
+@inject NavigationManager Navigation
+
+
+<nav x-data="{ isOpen: false }" class="h-16 fixed top-0 left-0 right-0 z-50 backdrop-filter backdrop-blur-md bg-white/70 dark:bg-gray-800/70 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="container px-6 py-2 mx-auto">
+        <div class="lg:flex lg:items-center lg:justify-between">
+            <div class="flex items-center justify-between">
+                <a href="#">
+                    <h1 class="inline-flex items-center">
+                        <img src="/path28.svg" class="rounded-full p-2 dark:bg-gray-200 bg-gray-100 h-12 w-12 me-2" />
+                        <span class="text-xl dark:text-gray-400 text-gray-500 text-center font-semibold">Idea Studio</span>
+                    </h1>
+                </a>
+
+                <!-- Mobile menu button -->
+                <div class="flex lg:hidden">
+                    <button x-cloak @click="isOpen = !isOpen" type="button" class="text-gray-500 dark:text-gray-200 hover:text-gray-600 dark:hover:text-gray-400 focus:outline-none focus:text-gray-600 dark:focus:text-gray-400" aria-label="toggle menu">
+                        <svg x-show="!isOpen" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+                        </svg>
+
+                        <svg x-show="isOpen" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Menu open: "block", Menu closed: "hidden" -->
+            <div x-cloak :class="[isOpen ? 'translate-x-0 opacity-100 ' : 'opacity-0 -translate-x-full']" class="absolute inset-x-0 z-20 w-full px-6 py-4 transition-all duration-300 ease-in-out lg:mt-0 lg:p-0 lg:top-0 lg:relative lg:bg-transparent lg:w-auto lg:opacity-100 lg:translate-x-0 lg:flex lg:items-center bg-white/80 dark:bg-gray-800/80 backdrop-filter backdrop-blur-xl">
+                <div class="flex flex-col -mx-6 lg:flex-row lg:items-center lg:mx-8">
+                    <a href="#" class="inline-flex items-center px-3 py-2 mx-3 mt-2 text-gray-700 transition-colors duration-300 transform rounded-md lg:mt-0 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <svg class="h-5 w-5 me-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="currentColor">
+                                <path d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12" />
+                                <path d="M10 9a2 2 0 1 1 3.683 1.08C13.085 11.01 12 11.896 12 13v.5m-.008 3.5h.009" />
+                            </g>
+                        </svg>
+                        <span>Help</span>
+
+                    </a>
+                    <a target="_blank" href="https://github.com/VincentGourbin/MagicMistralOCR" class="inline-flex items-center px-3 py-2 mx-3 mt-2 text-gray-700 transition-colors duration-300 transform rounded-md lg:mt-0 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <svg class="h-5 w-5 me-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="currentColor">
+                                <path d="M10 20.568c-3.429 1.157-6.286 0-8-3.568" />
+                                <path d="M10 22v-3.242c0-.598.184-1.118.48-1.588c.204-.322.064-.78-.303-.88C7.134 15.452 5 14.107 5 9.645c0-1.16.38-2.25 1.048-3.2c.166-.236.25-.354.27-.46c.02-.108-.015-.247-.085-.527c-.283-1.136-.264-2.343.16-3.43c0 0 .877-.287 2.874.96c.456.285.684.428.885.46s.469-.035 1.005-.169A9.5 9.5 0 0 1 13.5 3a9.6 9.6 0 0 1 2.343.28c.536.134.805.2 1.006.169c.2-.032.428-.175.884-.46c1.997-1.247 2.874-.96 2.874-.96c.424 1.087.443 2.294.16 3.43c-.07.28-.104.42-.084.526s.103.225.269.461c.668.95 1.048 2.04 1.048 3.2c0 4.462-2.134 5.807-5.177 6.643c-.367.101-.507.559-.303.88c.296.47.48.99.48 1.589V22" />
+                            </g>
+                        </svg>
+                        <span>GitHub</span>
+                    </a>
+                </div>
+
+                <div class="flex items-center mt-4 lg:mt-0">
+
+                    <div x-data="{ isOpen: false }" class="relative inline-block ">
+                        <!-- Dropdown toggle button -->
+                        <button x-on:click="isOpen = !isOpen" type="button" class="cursor-pointer relative z-10 flex items-center focus:outline-none" aria-label="toggle profile dropdown">
+                            <div class="w-8 h-8 overflow-hidden border-2 border-gray-400 rounded-full">
+                                <img src="@UserState.Value.ProfilePicture" class="object-cover w-full h-full" alt="avatar">
+                            </div>
+                            <h3 class="mx-2 text-gray-700 dark:text-gray-200 lg:hidden">@UserState.Value.UserName</h3>
+                        </button>
+
+                        <!-- Dropdown menu -->
+                        <div x-show="isOpen"
+                        x-on:click.away="isOpen = false"
+                        x-transition:enter="transition ease-out duration-100"
+                        x-transition:enter-start="opacity-0 scale-90"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-90"
+                        class="absolute right-0 z-20 w-56 py-2 mt-2 overflow-hidden origin-top-right bg-white rounded-md shadow-xl dark:bg-gray-800">
+                            <a href="#" class="lg:flex hidden flex items-center p-3 -mt-2 text-sm text-gray-600 transition-colors duration-300 transform dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white">
+                                <img class="flex-shrink-0 object-cover mx-1 rounded-full w-9 h-9" src="@UserState.Value.ProfilePicture" alt="jane avatar">
+                                <div class="mx-1">
+                                    <h1 class="text-sm font-semibold text-gray-700 dark:text-gray-200">@UserState.Value.UserName</h1>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">@UserState.Value.Email</p>
+                                </div>
+                            </a>
+
+                            <hr class="border-gray-200 dark:border-gray-700 lg:block hidden">
+
+                            <span class="block font-semibold px-4 py-2 text-sm text-gray-600 capitalize transition-colors duration-300 transform dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white">
+                                Settings
+                            </span>
+
+                            <div class="block tex px-4 py-3 text-sm text-gray-600 capitalize transition-colors duration-300 transform dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white">
+                                <ThemeToggle></ThemeToggle>
+                            </div>
+
+                            <div class="block tex px-4 py-3 text-sm text-gray-600 capitalize transition-colors duration-300 transform dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white">
+                                <LangToggle></LangToggle>
+                            </div>
+
+                            <hr class="border-gray-200 dark:border-gray-700 ">
+
+                            <a href="/api-keys" class="w-full inline-flex items-center block px-4 py-3 text-sm text-gray-600 capitalize transition-colors duration-300 transform dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 me-2" width="24" height="24" viewBox="0 0 24 24">
+                                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.5 14.5a6 6 0 1 0-5.47-3.53L2.5 18.5v3h3v-2h2v-2h2l3.53-3.53c.754.34 1.59.53 2.47.53m2-8l-1 1" color="currentColor" />
+                                </svg>
+                                <span>
+                                    API Keys
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+

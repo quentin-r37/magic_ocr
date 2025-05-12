@@ -1,0 +1,50 @@
+name: Build and Push OcrApp Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    # This allows you to run the workflow manually from the GitHub Actions tab
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: quentinr37/ocrappserver
+  VERSION: v1.0
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'  # Adjust this to match your .NET version
+        
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./OcrApp/Server/Dockerfile
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        platforms: linux/amd64
+        build-args: |
+          BUILD_CONFIGURATION=Debug
+        labels: |
+          com.microsoft.created-by=github-actions
+          com.microsoft.visual-studio.project-name=OcrApp.Server

@@ -1,4 +1,4 @@
-# magic_ocr
+# Magic OCR
 
 Une app intelligente pour extraire des informations de vos documents en utilisant la puissance des modèles de vision-langage (VLM) de Mistral AI, implémentée en Blazor.
 
